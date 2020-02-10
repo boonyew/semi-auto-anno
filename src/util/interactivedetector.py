@@ -340,7 +340,7 @@ class InteractiveDetector(QMainWindow):
         with open(filename_detections, "r") as inputfile:
             cache_str = inputfile.readlines()
 
-        for i in xrange(len(self._seq.data)):
+        for i in range(len(self._seq.data)):
             pbar.update(i)
             if len(self.subset_idxs) > 0:
                 if i not in self.subset_idxs:
@@ -386,7 +386,7 @@ class InteractiveDetector(QMainWindow):
     def save_plot(self):
         file_choices = "PNG (*.png)|*.png"
 
-        path = unicode(QFileDialog.getSaveFileName(self, 'Save file', '', file_choices))
+        path = str(QFileDialog.getSaveFileName(self, 'Save file', '', file_choices))
         if path:
             self.canvas_xy.print_figure(path, dpi=self.dpi)
             self.statusBar().showMessage('Saved to %s' % path, 2000)
@@ -395,7 +395,7 @@ class InteractiveDetector(QMainWindow):
         self.pointcloud()
 
     def nextButton_callback(self):
-        self.next()
+        next(self)
 
     def prevButton_callback(self):
         self.prev()
@@ -409,59 +409,59 @@ class InteractiveDetector(QMainWindow):
         elif event.text() == 'p':
             # previous
             self.prev()
-            print 'prev'
+            print('prev')
         elif event.text() == 'n':
             # next
-            self.next()
-            print 'next'
+            next(self)
+            print('next')
         elif event.text() == '3':
             # pointcloud
             self.pointcloud()
-            print '3D'
+            print('3D')
         elif event.text() == 'r':
             # reload
             self.panned = False
             self.showCurrent()
-            print 'reload'
+            print('reload')
         elif event.text() == 's':
             # save
             if self.filename_det is not None:
                 self.importer.saveSequenceDetections(self._seq, self.filename_det)
-            print 'saved'
+            print('saved')
         elif event.text() == 'a':
             # snap to z
             if self.lastind is not None:
                 self.snap_z(self.lastind)
-                print 'align'
+                print('align')
                 self.showContext()
         elif event.text() == 'z':
             # snap to z
             self.snap_z()
-            print 'snap'
+            print('snap')
             self.showContext()
         elif event.key() == Qt.Key_Plus:
             self.curData[self.lastind, 2] += 5.
-            print "z+=5"
+            print("z+=5")
             self.showContext()
         elif event.key() == Qt.Key_Minus:
             self.curData[self.lastind, 2] -= 5.
-            print "z-=5"
+            print("z-=5")
             self.showContext()
         elif event.key() == Qt.Key_Up:
             self.curData[self.lastind, 1] -= 1.
-            print "x-=1"
+            print("x-=1")
             self.showCurrent()
         elif event.key() == Qt.Key_Down:
             self.curData[self.lastind, 1] += 1.
-            print "x+=1"
+            print("x+=1")
             self.showCurrent()
         elif event.key() == Qt.Key_Right:
             self.curData[self.lastind, 0] += 1.
-            print "y+=1"
+            print("y+=1")
             self.showCurrent()
         elif event.key() == Qt.Key_Left:
             self.curData[self.lastind, 0] -= 1.
-            print "y-=1"
+            print("y-=1")
             self.showCurrent()
         else:
             return
@@ -483,20 +483,20 @@ class InteractiveDetector(QMainWindow):
         dpt, M, com = hd.cropArea3D(self.curData[0].reshape((3,)), size=self._seq.config['cube'], docom=False)
         self.hpe.plotResult3D(dpt, M, cur3D, cur3D, showGT=False, niceColors=False)
 
-    def next(self):
+    def __next__(self):
         self.panned = False
         self.saveCurrent()
         if len(self.subset_idxs) > 0:
             if len(self.subset_idxs) > self.subset_idxs.index(self.curFrame) + 1:
                 self.curFrame = self.subset_idxs[self.subset_idxs.index(self.curFrame) + 1]
             else:
-                print "Done"
+                print("Done")
                 QApplication.instance().quit()
         else:
             if self.curFrame < len(self._seq.data) - 1:
                 self.curFrame += 1
             else:
-                print "Done"
+                print("Done")
                 QApplication.instance().quit()
 
         # reset timer
@@ -528,12 +528,12 @@ class InteractiveDetector(QMainWindow):
             if self.subset_idxs.index(self.curFrame) - 1 >= 0:
                 self.curFrame = self.subset_idxs[self.subset_idxs.index(self.curFrame) - 1]
             else:
-                print "First already selected!"
+                print("First already selected!")
         else:
             if self.curFrame > 0:
                 self.curFrame -= 1
             else:
-                print "First already selected!"
+                print("First already selected!")
 
         # reset timer
         self.start_time = time.time()
@@ -594,7 +594,7 @@ class InteractiveDetector(QMainWindow):
         if event.button != 1:
             return
         self._ind = self.get_ind_under_point(event)
-        print "got joint id", self._ind
+        print("got joint id", self._ind)
 
         # if there is only one joint
         if self._ind is None and self.curData.shape[0] == 1:

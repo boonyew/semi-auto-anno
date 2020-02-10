@@ -74,7 +74,7 @@ def sparseLM(x0, func, fjaco, ferr, fcallback=None, lambda0=1e-2, eps_grad=1e-3,
     while i < max_iter:
         func_x = func(x, *args)
         if disp:
-            print "Error {} at iteration {}, lambdai {}".format(func_x, i, lambdai)
+            print("Error {} at iteration {}, lambdai {}".format(func_x, i, lambdai))
 
         # log errors
         if len(errs) <= i:
@@ -104,7 +104,7 @@ def sparseLM(x0, func, fjaco, ferr, fcallback=None, lambda0=1e-2, eps_grad=1e-3,
         func_xh = func(x + h, *args)
         rho_h = (func_x - func_xh) / (numpy.sum(h*(lambdai * diag * h + rhs)))
         if disp:
-            print "rho={}, fun delta={}".format(rho_h, func_x - func_xh)
+            print("rho={}, fun delta={}".format(rho_h, func_x - func_xh))
 
         if rho_h > eps_improv:
             x += h
@@ -119,32 +119,32 @@ def sparseLM(x0, func, fjaco, ferr, fcallback=None, lambda0=1e-2, eps_grad=1e-3,
             # test convergence, test separately so this is not a full iteration
             if lambdai >= 1e8:
                 if disp:
-                    print "Convergence lambdai {} >= {}".format(lambdai, 1e8)
+                    print("Convergence lambdai {} >= {}".format(lambdai, 1e8))
                 break
 
         if errs[0] / func_x > eps_es:
             if disp:
-                print "Early stopping objective {}/{} > {}".format(errs[0], func_x, eps_es)
+                print("Early stopping objective {}/{} > {}".format(errs[0], func_x, eps_es))
             break
 
         if numpy.abs(rhs).max() < eps_grad:
             if disp:
-                print "Convergence gradient {} < {}".format(numpy.abs(rhs).max(), eps_grad)
+                print("Convergence gradient {} < {}".format(numpy.abs(rhs).max(), eps_grad))
             break
 
         if numpy.nanmax(numpy.abs(h / x)) < eps_param:
             if disp:
-                print "Convergence parameters {} < {}".format(numpy.abs(h / x).max(), eps_param)
+                print("Convergence parameters {} < {}".format(numpy.abs(h / x).max(), eps_param))
             break
 
         if func_x < eps_cost:
             if disp:
-                print "Convergence cost {} < {}".format(func_x, eps_cost)
+                print("Convergence cost {} < {}".format(func_x, eps_cost))
             break
 
     if i == max_iter:
         if disp:
-            print "Maximum number of iteration {} reached!".format(i)
+            print("Maximum number of iteration {} reached!".format(i))
 
     if retall:
         return [x, errs, x_intermed]

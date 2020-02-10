@@ -6,20 +6,20 @@ Use to manage the 3D points.
 Copyright 2015 Markus Oberweger, ICG,
 Graz University of Technology <oberweger@icg.tugraz.at>
 
-This file is part of SemiAutoAnno.
+This file is part of DeepPrior.
 
-SemiAutoAnno is free software: you can redistribute it and/or modify
+DeepPrior is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-SemiAutoAnno is distributed in the hope that it will be useful,
+DeepPrior is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with SemiAutoAnno.  If not, see <http://www.gnu.org/licenses/>.
+along with DeepPrior.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import vtk
@@ -40,7 +40,7 @@ class VtkPointCloud:
     Manage 3D point cloud in VTK
     @see: http://sukhbinder.wordpress.com/2013/09/17/python-vtk-script-to-display-3d-xyz-data/
     """
-    def __init__(self, zMin=-10.0, zMax=10.0, maxNumPoints=1e6):
+    def __init__(self, pts=None, zMin=-10.0, zMax=10.0, maxNumPoints=1e6, color='depth'):
         """
         Initialize class
         :param zMin: minimum depth
@@ -48,6 +48,7 @@ class VtkPointCloud:
         :param maxNumPoints: maximum number of points
         :return: None
         """
+        self.color = color
         self.maxNumPoints = int(maxNumPoints)
         self.vtkPolyData = vtk.vtkPolyData()
         self.clearPoints()
@@ -60,6 +61,9 @@ class VtkPointCloud:
         self.vtkActor.SetMapper(mapper)
         self.vtkActor.GetProperty().SetPointSize(3.0)
         self.rng = numpy.random.RandomState(23455)
+
+        if pts is not None:
+            self.addPoints(pts)
  
     def addPoint(self, point):
         """
@@ -69,7 +73,12 @@ class VtkPointCloud:
         """
         if self.vtkPoints.GetNumberOfPoints() < self.maxNumPoints:
             pointId = self.vtkPoints.InsertNextPoint(point[:])
-            self.vtkDepth.InsertNextValue(point[2])
+            if self.color == 'depth':
+                self.vtkDepth.InsertNextValue(point[2])
+            else:
+                import numbers
+                assert isinstance(self.color, numbers.Number)
+                self.vtkDepth.InsertNextValue(self.color)
             self.vtkCells.InsertNextCell(1)
             self.vtkCells.InsertCellPoint(pointId)
         else:
@@ -78,6 +87,17 @@ class VtkPointCloud:
         self.vtkCells.Modified()
         self.vtkPoints.Modified()
         self.vtkDepth.Modified()
+
+    def addPoints(self, points):
+        """
+        Add points to the point cloud
+        :param points: Nx3 matrix with points
+        :return: None
+        """
+        assert len(points.shape) == 2, points.shape
+        assert points.shape[1] == 3, points.shape
+        for k in range(points.shape[0]):
+            self.addPoint(points[k])
  
     def clearPoints(self):
         """
@@ -92,3 +112,29 @@ class VtkPointCloud:
         self.vtkPolyData.SetVerts(self.vtkCells)
         self.vtkPolyData.GetPointData().SetScalars(self.vtkDepth)
         self.vtkPolyData.GetPointData().SetActiveScalars('DepthArray')
+
+    @staticmethod
+    def viewer(pointclouds):
+        assert all([isinstance(p, VtkPointCloud) for p in pointclouds])
+
+        # Renderer
+        renderer = vtk.vtkRenderer()
+        renderer.SetBackground(1.0, 1.0, 1.0)
+
+        for p in pointclouds:
+            renderer.AddActor(p.vtkActor)
+        renderer.ResetCamera()
+
+        # Render Window
+        renderWindow = vtk.vtkRenderWindow()
+        renderWindow.AddRenderer(renderer)
+
+        # Interactor
+        renderWindowInteractor = vtk.vtkRenderWindowInteractor()
+        renderWindowInteractor.SetRenderWindow(renderWindow)
+
+        # Begin Interaction
+        renderWindow.Render()
+        renderWindow.SetWindowName("XYZ Data Viewer")
+
+        renderWindowInteractor.Start()

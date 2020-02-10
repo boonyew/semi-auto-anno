@@ -25,9 +25,9 @@ import os
 import sys
 import pwd
 from PyQt4.QtGui import QApplication
-from data.importers import Blender2Importer
-from util.handconstraints import Blender2HandConstraints
-from util.handpose_evaluation import Blender2HandposeEvaluation
+from data.importers import MSRA15Importer
+from util.handconstraints import MSRAHandConstraints
+from util.handpose_evaluation import MSRAHandposeEvaluation
 from util.interactivedatasetlabeling import InteractiveDatasetLabeling
 
 __author__ = "Markus Oberweger <oberweger@icg.tugraz.at>"
@@ -62,7 +62,7 @@ if __name__ == '__main__':
 
     if person is None:
         print('Person must be specified: -p <person> or enter now:')
-        person = input().lower()
+        person = input()
         if len(person.strip()) == 0:
             sys.exit(2)
     else:
@@ -91,11 +91,11 @@ if __name__ == '__main__':
     # subset to label
     subset_idxs = []
 
-    if person == 'hpseq_loop_mv':
-        di = Blender2Importer('../data/Blender/', useCache=False)
-        Seq2 = di.loadSequence(person, camera=0, shuffle=False)
-        hc = Blender2HandConstraints([Seq2.name])
-        hpe = Blender2HandposeEvaluation([j.gt3Dorig for j in Seq2.data], [j.gt3Dorig for j in Seq2.data])
+    if person == 'P0':
+        di = MSRA15Importer('/home/boonyew/Documents/semi-auto-anno-master/semi-auto-anno/data/msra/', useCache=False)
+        Seq2 = di.loadSequence(person, shuffle=False)
+        hc = MSRAHandConstraints([Seq2.name])
+        hpe = MSRAHandposeEvaluation([j.gt3Dorig for j in Seq2.data], [j.gt3Dorig for j in Seq2.data])
         for idx, seq in enumerate(Seq2.data):
             ed = {'vis': [], 'pb': {'pb': [], 'pbp': []}}
             Seq2.data[idx] = seq._replace(gtorig=numpy.zeros_like(seq.gtorig), extraData=ed)

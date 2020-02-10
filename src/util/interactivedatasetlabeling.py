@@ -123,7 +123,7 @@ class InteractiveDatasetLabeling(QMainWindow):
                 self.curData = self.importer.default_gtorig.copy() + self.importer.joint3DToImg(self._seq.data[self.curFrame].com)
 
         if hasattr(self._seq.data[self.curFrame], 'extraData') and self._seq.data[self.curFrame].extraData:
-            if 'pb' in self._seq.data[self.curFrame].extraData.keys():
+            if 'pb' in list(self._seq.data[self.curFrame].extraData.keys()):
                 self.curPb = self._seq.data[self.curFrame].extraData['pb']['pb']
                 self.curPbP = self._seq.data[self.curFrame].extraData['pb']['pbp']
             else:
@@ -138,11 +138,11 @@ class InteractiveDatasetLabeling(QMainWindow):
                             self.curPb.append((self.hc.posebits[p][1], self.hc.posebits[p][0]))
                             self.curPbP.append(self.hc.posebits[p])
 
-            if 'vis' in self._seq.data[self.curFrame].extraData.keys():
+            if 'vis' in list(self._seq.data[self.curFrame].extraData.keys()):
                 self.curVis = self._seq.data[self.curFrame].extraData['vis']
                 # default all visible
                 if len(self.curVis) == 0:
-                    self.curVis = range(0, self.curData.shape[0])
+                    self.curVis = list(range(0, self.curData.shape[0]))
             else:
                 dm = self.importer.loadDepthMap(self.path_prefix+self._seq.data[self.curFrame].fileName)
                 self.curVis = self.importer.visibilityTest(dm, self.curData, 10.)
@@ -520,7 +520,7 @@ class InteractiveDatasetLabeling(QMainWindow):
         with open(filename_joints, "r") as inputfile:
             cache_str_joints = inputfile.readlines()
 
-        for i in xrange(len(self._seq.data)):
+        for i in range(len(self._seq.data)):
             pbar.update(i)
             if len(self.subset_idxs) > 0:
                 if i not in self.subset_idxs:
@@ -572,7 +572,7 @@ class InteractiveDatasetLabeling(QMainWindow):
     def save_plot(self):
         file_choices = "PNG (*.png)|*.png"
 
-        path = unicode(QFileDialog.getSaveFileName(self, 'Save file', '', file_choices))
+        path = str(QFileDialog.getSaveFileName(self, 'Save file', '', file_choices))
         if path:
             self.canvas_xy.print_figure(path, dpi=self.dpi)
             self.statusBar().showMessage('Saved to %s' % path, 2000)
@@ -658,7 +658,7 @@ class InteractiveDatasetLabeling(QMainWindow):
         self.solve()
 
     def nextButton_callback(self):
-        self.next()
+        next(self)
 
     def prevButton_callback(self):
         self.prev()
@@ -676,77 +676,77 @@ class InteractiveDatasetLabeling(QMainWindow):
             else:
                 self.curVis.append(self.lastind)
             self.showCurrent()
-            print 'vis'
+            print('vis')
         elif event.text() == 'p':
             # previous
             self.prev()
-            print 'prev'
+            print('prev')
         elif event.text() == 'n':
             # next
-            self.next()
-            print 'next'
+            next(self)
+            print('next')
         elif event.text() == '3':
             # solve
             self.solve()
-            print '3D'
+            print('3D')
         elif event.text() == 'd':
             self.curData = self.importer.default_gtorig.copy() + self.importer.joint3DToImg(self._seq.data[self.curFrame].com)
             self.showCurrent()
-            print 'default'
+            print('default')
         elif event.text() == 'a':
             self.curData -= self.curData[self.importer.crop_joint_idx]
             self.curData += self.importer.joint3DToImg(self._seq.data[self.curFrame].com)
             self.showCurrent()
-            print 'adjust'
+            print('adjust')
         elif event.text() == 'm':
             self.measureHand()
-            print 'measure hand'
+            print('measure hand')
         elif event.text() == 'r':
             # reload
             self.panned = False
             self.showCurrent()
-            print 'reload'
+            print('reload')
         elif event.text() == 's':
             # save
             if self.filename_joints is not None and self.filename_pb is not None and self.filename_vis is not None:
                 self.importer.saveSequenceAnnotations(self._seq, {'joints': self.filename_joints,
                                                                   'vis': self.filename_vis,
                                                                   'pb': self.filename_pb})
-            print 'saved'
+            print('saved')
         elif event.text() == 'a':
             # snap to z
             if self.lastind is not None:
                 self.snap_z(self.lastind)
-                print 'align'
+                print('align')
                 self.showContext()
         elif event.text() == 'z':
             # snap to z
             self.snap_z()
-            print 'snap'
+            print('snap')
             self.showContext()
         elif event.key() == Qt.Key_Plus:
             self.curData[self.lastind, 2] += 5.
-            print "z+=5"
+            print("z+=5")
             self.showContext()
         elif event.key() == Qt.Key_Minus:
             self.curData[self.lastind, 2] -= 5.
-            print "z-=5"
+            print("z-=5")
             self.showContext()
         elif event.key() == Qt.Key_Up:
             self.curData[self.lastind, 1] -= 1.
-            print "x-=1"
+            print("x-=1")
             self.showCurrent()
         elif event.key() == Qt.Key_Down:
             self.curData[self.lastind, 1] += 1.
-            print "x+=1"
+            print("x+=1")
             self.showCurrent()
         elif event.key() == Qt.Key_Right:
             self.curData[self.lastind, 0] += 1.
-            print "y+=1"
+            print("y+=1")
             self.showCurrent()
         elif event.key() == Qt.Key_Left:
             self.curData[self.lastind, 0] -= 1.
-            print "y-=1"
+            print("y-=1")
             self.showCurrent()
         else:
             return
@@ -772,7 +772,7 @@ class InteractiveDatasetLabeling(QMainWindow):
         dpt, M, com = hd.cropArea3D(self.importer.joint3DToImg(self._seq.data[self.curFrame].com), size=self._seq.config['cube'])
 
         crop = numpy.zeros((self.curData.shape[0], 3), numpy.float32)
-        for joint in xrange(crop.shape[0]):
+        for joint in range(crop.shape[0]):
             t = transformPoint2D(self.curData[joint], M)
             crop[joint, 0] = t[0]
             crop[joint, 1] = t[1]
@@ -806,9 +806,9 @@ class InteractiveDatasetLabeling(QMainWindow):
         occluded = numpy.setdiff1d(numpy.arange(li_visiblemask.shape[1]), self.curVis)
         li_visiblemask[0, occluded] = 0
 
-        print self.curVis
-        print self.curPb
-        print self.curPbP
+        print(self.curVis)
+        print(self.curPb)
+        print(self.curPbP)
 
         eval_params = {'init_method': 'closest',
                        'init_manualrefinement': True,  # True, False
@@ -850,7 +850,7 @@ class InteractiveDatasetLabeling(QMainWindow):
         cur3D = msr.li3D_aug[0]*train_scale+train_off3D
         cur2D = self.importer.joints3DToImg(cur3D)
         cur2Dcrop = numpy.zeros((cur2D.shape[0], 3), numpy.float32)
-        for joint in xrange(cur2D.shape[0]):
+        for joint in range(cur2D.shape[0]):
             t = transformPoint2D(cur2D[joint], M)
             cur2Dcrop[joint, 0] = t[0]
             cur2Dcrop[joint, 1] = t[1]
@@ -863,7 +863,7 @@ class InteractiveDatasetLabeling(QMainWindow):
         self.curData[:, 2] = cur3D[:, 2]
 
         if self.replace_file is not None:
-            print "replace anno for {}".format(self.curFrame)
+            print("replace anno for {}".format(self.curFrame))
             data = numpy.load(self.replace_file)
             if isinstance(data, numpy.lib.npyio.NpzFile):
                 dat = data['arr_1']
@@ -872,7 +872,7 @@ class InteractiveDatasetLabeling(QMainWindow):
             else:
                 data[self.curFrame-self.replace_off] = msr.li3D_aug[0].reshape(data[self.curFrame].shape)
                 numpy.save(self.replace_file, data)
-            print "saved file {}".format(self.replace_file)
+            print("saved file {}".format(self.replace_file))
 
         plt.close()
         del msr
@@ -882,27 +882,27 @@ class InteractiveDatasetLabeling(QMainWindow):
 
     def measureHand(self):
         cur3D = self.importer.jointsImgTo3D(self.curData)
-        print "HC:"
-        for i in xrange(len(self.hc.hc_pairs)):
-            print str(numpy.sqrt(numpy.square(cur3D[self.hc.hc_pairs[i][0]] - cur3D[self.hc.hc_pairs[i][1]]).sum()))+', '
-        print "LU:"
-        for i in xrange(len(self.hc.lu_pairs)):
-            print str(numpy.sqrt(numpy.square(cur3D[self.hc.lu_pairs[i][0]] - cur3D[self.hc.lu_pairs[i][1]]).sum()))+', '
+        print("HC:")
+        for i in range(len(self.hc.hc_pairs)):
+            print(str(numpy.sqrt(numpy.square(cur3D[self.hc.hc_pairs[i][0]] - cur3D[self.hc.hc_pairs[i][1]]).sum()))+', ')
+        print("LU:")
+        for i in range(len(self.hc.lu_pairs)):
+            print(str(numpy.sqrt(numpy.square(cur3D[self.hc.lu_pairs[i][0]] - cur3D[self.hc.lu_pairs[i][1]]).sum()))+', ')
 
-    def next(self):
+    def __next__(self):
         self.panned = False
         self.saveCurrent()
         if len(self.subset_idxs) > 0:
             if len(self.subset_idxs) > self.subset_idxs.index(self.curFrame) + 1:
                 self.curFrame = self.subset_idxs[self.subset_idxs.index(self.curFrame) + 1]
             else:
-                print "Done"
+                print("Done")
                 QApplication.instance().quit()
         else:
             if self.curFrame < len(self._seq.data) - 1:
                 self.curFrame += 1
             else:
-                print "Done"
+                print("Done")
                 QApplication.instance().quit()
 
         self.curCorrected = []
@@ -935,7 +935,7 @@ class InteractiveDatasetLabeling(QMainWindow):
                 self.curData = gtorig.copy()
 
         if hasattr(self._seq.data[self.curFrame], 'extraData') and self._seq.data[self.curFrame].extraData:
-            if 'pb' in self._seq.data[self.curFrame].extraData.keys():
+            if 'pb' in list(self._seq.data[self.curFrame].extraData.keys()):
                 self.curPb = self._seq.data[self.curFrame].extraData['pb']['pb']
                 self.curPbP = self._seq.data[self.curFrame].extraData['pb']['pbp']
                 if len(self.curPb) == 0 and len(self.curPbP) == 0:
@@ -954,11 +954,11 @@ class InteractiveDatasetLabeling(QMainWindow):
                             self.curPb.append((self.hc.posebits[p][1], self.hc.posebits[p][0]))
                             self.curPbP.append(self.hc.posebits[p])
 
-            if 'vis' in self._seq.data[self.curFrame].extraData.keys():
+            if 'vis' in list(self._seq.data[self.curFrame].extraData.keys()):
                 self.curVis = self._seq.data[self.curFrame].extraData['vis']
                 # default all visible
                 if len(self.curVis) == 0:
-                    self.curVis = range(0, self.curData.shape[0])
+                    self.curVis = list(range(0, self.curData.shape[0]))
             else:
                 dm = self.importer.loadDepthMap(self.path_prefix+self._seq.data[self.curFrame].fileName)
                 self.curVis = self.importer.visibilityTest(dm, self.curData, 10.)
@@ -984,12 +984,12 @@ class InteractiveDatasetLabeling(QMainWindow):
             if self.subset_idxs.index(self.curFrame) - 1 >= 0:
                 self.curFrame = self.subset_idxs[self.subset_idxs.index(self.curFrame) - 1]
             else:
-                print "First already selected!"
+                print("First already selected!")
         else:
             if self.curFrame > 0:
                 self.curFrame -= 1
             else:
-                print "First already selected!"
+                print("First already selected!")
 
         self.curCorrected = []
 
@@ -1006,7 +1006,7 @@ class InteractiveDatasetLabeling(QMainWindow):
         else:
             self.curData = self._seq.data[self.curFrame].gtorig.copy()
         if hasattr(self._seq.data[self.curFrame], 'extraData') and self._seq.data[self.curFrame].extraData:
-            if 'pb' in self._seq.data[self.curFrame].extraData.keys():
+            if 'pb' in list(self._seq.data[self.curFrame].extraData.keys()):
                 self.curPb = self._seq.data[self.curFrame].extraData['pb']['pb']
                 self.curPbP = self._seq.data[self.curFrame].extraData['pb']['pbp']
             else:
@@ -1021,7 +1021,7 @@ class InteractiveDatasetLabeling(QMainWindow):
                             self.curPb.append((self.hc.posebits[p][1], self.hc.posebits[p][0]))
                             self.curPbP.append(self.hc.posebits[p])
 
-            if 'vis' in self._seq.data[self.curFrame].extraData.keys():
+            if 'vis' in list(self._seq.data[self.curFrame].extraData.keys()):
                 self.curVis = self._seq.data[self.curFrame].extraData['vis']
             else:
                 dm = self.importer.loadDepthMap(self.path_prefix+self._seq.data[self.curFrame].fileName)
@@ -1090,7 +1090,7 @@ class InteractiveDatasetLabeling(QMainWindow):
         if event.button != 1:
             return
         self._ind = self.get_ind_under_point(event)
-        print "got joint id", self._ind
+        print("got joint id", self._ind)
         if self._ind is not None:
             x0, y0 = self.plots_xy[self._ind].get_data()
             self.press = x0, y0, event.xdata, event.ydata

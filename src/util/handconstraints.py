@@ -64,7 +64,7 @@ class HandConstraints(object):
     def jointRanges(self, joints):
         assert len(joints.shape) == 3  # we need array (samples, joints, 3)
         dists = numpy.zeros((joints.shape[0], len(self.lu_pairs)))
-        for i in xrange(joints.shape[0]):
+        for i in range(joints.shape[0]):
             for ip, p in enumerate(self.lu_pairs):
                 length = self.jointLength(joints[i, p[0]], joints[i, p[1]])
                 dists[i, ip] = length
@@ -229,7 +229,6 @@ class HandConstraints(object):
             if sb not in self.temporalBreaks:
                 raise ValueError("Sequence break {} definde, but not in temporal breaks {}!".format(sb, self.temporalBreaks))
 
-
 class Blender2HandConstraints(HandConstraints):
     def __init__(self, seq):
         super(Blender2HandConstraints, self).__init__(24)
@@ -262,27 +261,27 @@ class Blender2HandConstraints(HandConstraints):
 
         # breaks in the sequence, eg due to pause in acquiring, important for temporal constraints
         # got by thresholding |pi-pi+1|^2 > 20000
-        temporalBreaks = {'hpseq': [957], 'hpseq_loop_mv': [3039]}
+        temporalBreaks = {'P0': [100]}
         self.temporalBreaks = temporalBreaks[seq[0]]
 
         # breaks in the sequence for hard constraints, eg person changed, important for constraint handling
         # got by thresholding d(Li)-d(Li+1) > 1
-        hc_breaks = {'hpseq': [957], 'hpseq_loop_mv': [3039]}
+        hc_breaks = {'P0': [100]}
         self.hc_breaks = hc_breaks[seq[0]]
 
         # mark different recording sequences
-        sequenceBreaks = {'hpseq': [957], 'hpseq_loop_mv': [3039]}
+        sequenceBreaks = {'P0': [100]}
         self.sequenceBreaks = sequenceBreaks[seq[0]]
 
         # finger tips are allowed to be on the surface
         self.finger_tips = [3, 8, 13, 18, 23]
 
         # joint offset, must be this smaller than depth
-        self.joint_off = [(20, ), (10, ), (5, ), (3, ),
-                          (15, ), (5, ), (5, ), (5, ), (3, ),
-                          (20, ), (7, ), (5, ), (5, ), (1, ),
-                          (15, ), (7, ), (5, ), (5, ), (3, ),
-                          (15, ), (4, ), (4, ), (4, ), (2, )]
+        self.joint_off = [(20, ), (10, ), (15, ), (13, ),
+                          (15, ), (15, ), (15, ), (15, ),
+                          (20, ), (17, ), (15, ), (15, ), 
+                          (15, ), (17, ), (15, ), (15, ),
+                          (15, ), (14, ), (14, ), (14, ), (12, )]
 
         # bone length
         self.boneLength = numpy.asarray([[34.185734, 41.417736, 22.82596, 79.337524, 29.080118, 26.109291, 22.746597,
@@ -321,3 +320,211 @@ class Blender2HandConstraints(HandConstraints):
                          ((21, 22), (22, 23)),
                          ((23, 22), (22, 23))]
 
+class MSRAHandConstraints(HandConstraints):
+    """
+    
+    MSRA Joints 0: wrist, 1: index_mcp, 2: index_pip, 3: index_dip, 4:index_tip, 
+                5: middle_mcp, 6:middle_pip, 7: middle_dip, 8: middle_tip, 
+                9: ring_mcp, 10: ring_pip, 11: ring_dip, 12: ring_tip, 
+                13: little_mcp, 14: little_pip, 15: little_dip, 16:little_tip, 
+                17:thumb_mcp, 18: thumb_pip, 19: thumb_dip, 20: thumb_tip.
+    
+    """
+    def __init__(self, seq):
+        super(MSRAHandConstraints, self).__init__(21)
+
+        if not isinstance(seq, list):
+            raise ValueError("Parameter person must be list!")
+
+        if len(seq) > 1:
+            raise NotImplementedError("Not supported!")
+
+        self.posebits = [(0, 1), (1, 2), (2, 3), (3, 4), (5, 6), (6, 7), (7, 8), (9, 10), (10, 11), (11, 12), (13, 14),
+                         (14, 15), (15, 16), (17, 18), (18,19), (19, 20)]
+
+        self.hc_pairs = [(0, 1), (1, 2), (2, 3), (3, 4), (5, 6), (6, 7), (7, 8), (9, 10), (10, 11), (11, 12), (13, 14),
+                         (14, 15), (15, 16), (17, 18), (18,19), (19, 20),
+                         (0, 4), (4, 9), (9, 14), (14, 19)]  # almost all joints are constraint
+
+        self.lu_pairs = []  # pairs only constrained by a range by lower and upper bounds
+
+        # zig-zag constraint
+        self.zz_pairs = [((1, 0), (2, 1)), ((2, 1), (3, 2)),
+                         ((5, 4), (6, 5)), ((6, 5), (7, 6)), ((7, 6), (8, 7)),
+                         ((10, 9), (11, 10)), ((11, 10), (12, 11)), ((12, 11), (13, 12)),
+                         ((15, 14), (16, 15)), ((16, 15), (17, 16)), ((17, 16), (18, 17)),
+                         ((18, 17), (20,19))]
+        self.zz_thresh = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+        # breaks in the sequence, eg due to pause in acquiring, important for temporal constraints
+        # got by thresholding |pi-pi+1|^2 > 20000
+        temporalBreaks = {'P0': [3000]}
+        self.temporalBreaks = temporalBreaks[seq[0]]
+
+        # breaks in the sequence for hard constraints, eg person changed, important for constraint handling
+        # got by thresholding d(Li)-d(Li+1) > 1
+        hc_breaks = {'P0': [3000]}
+        self.hc_breaks = hc_breaks[seq[0]]
+
+        # mark different recording sequences
+        sequenceBreaks = {'P0': [3000]}
+        self.sequenceBreaks = sequenceBreaks[seq[0]]
+
+        # finger tips are allowed to be on the surface
+        self.finger_tips = [3, 8, 13, 18, 23]
+
+        # joint offset, must be this smaller than depth
+        self.joint_off = [(20, ), (5, ), (5, ), (5, ),(3, ),
+                          (7, ), (5, ), (5, ),(3, ),
+                          (7, ), (5, ), (5, ),(3, ),
+                          (7, ), (5, ), (5, ),(3, ),
+                          (7, ), (5, ), (5, ),(3, )]
+
+        # bone length
+        self.boneLength = numpy.asarray([[79.337524, 29.080118,26.109291, 22.82596,
+                                        74.185734 ,28.834019, 24.202969 , 22.746597,
+                                          74.122597, 25.468117, 20.345839, 18.0,
+                                          70.0,24.817657, 16.407534, 17.916492,
+                                          40.0,15.136428, 8.8747139,5.0]])
+                                          
+
+        self.boneRanges = numpy.asarray([[[]]])
+
+        self.noisePairs = [((0, 1), (1, 0)),
+                         ((0, 1), (1, 2)),
+                         ((1, 2), (2, 3)),
+                         ((3, 2), (2, 3)),
+
+                         ((5, 4), (4, 5)),
+                         ((4, 5), (5, 6)),
+                         ((5, 6), (6, 7)),
+                         ((6, 7), (7, 8)),
+                         ((8, 7), (7, 8)),
+
+                         ((10, 9), (9, 10)),
+                         ((9, 10), (10, 11)),
+                         ((10, 11), (11, 12)),
+                         ((11, 12), (12, 13)),
+                         ((13, 12), (12, 13)),
+
+                         ((15, 14), (14, 15)),
+                         ((14, 15), (15, 16)),
+                         ((15, 16), (16, 17)),
+                         ((16, 17), (17, 18)),
+                         ((18, 17), (17, 18)),
+
+                         ((20, 19), (19, 20))]
+
+class IntelHandConstraints(HandConstraints):
+    """
+    
+    MSRA Joints 0: wrist, 1: index_mcp, 2: index_pip, 3: index_dip, 4:index_tip, 
+                5: middle_mcp, 6:middle_pip, 7: middle_dip, 8: middle_tip, 
+                9: ring_mcp, 10: ring_pip, 11: ring_dip, 12: ring_tip, 
+                13: little_mcp, 14: little_pip, 15: little_dip, 16:little_tip, 
+                17:thumb_mcp, 18: thumb_pip, 19: thumb_dip, 20: thumb_tip.
+    
+    """
+    def __init__(self, seq):
+        super(IntelHandConstraints, self).__init__(21)
+
+        if not isinstance(seq, list):
+            raise ValueError("Parameter person must be list!")
+
+        if len(seq) > 1:
+            raise NotImplementedError("Not supported!")
+
+        self.posebits = [(0, 1), (1, 2), (2, 3), (3, 4), (5, 6), (6, 7), (7, 8), (9, 10), (10, 11), (11, 12), (13, 14),
+                         (14, 15), (15, 16), (17, 18), (18,19), (19, 20)]
+
+        self.hc_pairs = [(0, 1), (1, 2), (2, 3), (3, 4), (5, 6), (6, 7), (7, 8), (9, 10), (10, 11), (11, 12), (13, 14),
+                         (14, 15), (15, 16), (17, 18), (18,19), (19, 20),
+                         (0, 4), (4, 9), (9, 14), (14, 19)]  # almost all joints are constraint
+
+        self.lu_pairs = []  # pairs only constrained by a range by lower and upper bounds
+
+        # zig-zag constraint
+        self.zz_pairs = [((1, 0), (2, 1)), ((2, 1), (3, 2)),
+                         ((5, 4), (6, 5)), ((6, 5), (7, 6)), ((7, 6), (8, 7)),
+                         ((10, 9), (11, 10)), ((11, 10), (12, 11)), ((12, 11), (13, 12)),
+                         ((15, 14), (16, 15)), ((16, 15), (17, 16)), ((17, 16), (18, 17)),
+                         ((18, 17), (20,19))]
+        self.zz_thresh = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+        # breaks in the sequence, eg due to pause in acquiring, important for temporal constraints
+        # got by thresholding |pi-pi+1|^2 > 20000
+        temporalBreaks = {'test_seq2': [242]}
+        self.temporalBreaks = temporalBreaks[seq[0]]
+
+        # breaks in the sequence for hard constraints, eg person changed, important for constraint handling
+        # got by thresholding d(Li)-d(Li+1) > 1
+        hc_breaks = {'test_seq2': [242]}
+        self.hc_breaks = hc_breaks[seq[0]]
+
+        # mark different recording sequences
+        sequenceBreaks = {'test_seq2': [242]}
+        self.sequenceBreaks = sequenceBreaks[seq[0]]
+
+        # finger tips are allowed to be on the surface
+        self.finger_tips = [4, 8, 12, 16, 20]
+
+        # joint offset, must be this smaller than depth
+        self.joint_off = [(10, ), (5, ), (5, ), (5, ),(3, ),
+                          (7, ), (5, ), (5, ),(3, ),
+                          (7, ), (5, ), (5, ),(3, ),
+                          (7, ), (5, ), (5, ),(3, ),
+                          (7, ), (5, ), (5, ),(3, )]
+
+        # bone length
+        self.boneLength = numpy.asarray([[65.439095, 
+                                            16.28102, 
+                                            12.187357, 
+                                            12.187351, 
+                                            12.91558, 
+                                            12.168592, 
+                                            10.816517, 
+                                            12.9155855, 
+                                            12.915587, 
+                                            12.243466, 
+                                            10.494846, 
+                                            5.5747056, 
+                                            7.558276, 
+                                            17.745039, 
+                                            15.954949, 
+                                            15.563432, 
+                                            104.78722, 
+                                            52.124695, 
+                                            22.401072, 
+                                            99.33079]])
+                                        #     [[79.337524, 29.080118,26.109291, 22.82596,
+                                        # 74.185734 ,28.834019, 24.202969 , 22.746597,
+                                        #   74.122597, 25.468117, 20.345839, 18.0,
+                                        #   70.0,24.817657, 16.407534, 17.916492,
+                                        #   10.0,15.0,15.136428, 8.8747139]]
+                                          
+        self.boneRanges = numpy.asarray([[[]]])
+
+        self.noisePairs = [((0, 1), (1, 0)),
+                         ((0, 1), (1, 2)),
+                         ((1, 2), (2, 3)),
+                         ((3, 2), (2, 3)),
+
+                         ((5, 4), (4, 5)),
+                         ((4, 5), (5, 6)),
+                         ((5, 6), (6, 7)),
+                         ((6, 7), (7, 8)),
+                         ((8, 7), (7, 8)),
+
+                         ((10, 9), (9, 10)),
+                         ((9, 10), (10, 11)),
+                         ((10, 11), (11, 12)),
+                         ((11, 12), (12, 13)),
+                         ((13, 12), (12, 13)),
+
+                         ((15, 14), (14, 15)),
+                         ((14, 15), (15, 16)),
+                         ((15, 16), (16, 17)),
+                         ((16, 17), (17, 18)),
+                         ((18, 17), (17, 18)),
+
+                         ((20, 19), (19, 20))]

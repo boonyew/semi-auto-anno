@@ -25,8 +25,8 @@ import os
 import sys
 import pwd
 from PyQt4.QtGui import QApplication
-from data.importers import Blender2Importer
-from util.handpose_evaluation import Blender2HandposeEvaluation
+from data.importers import IntelImporter
+from util.handpose_evaluation import IntelHandposeEvaluation
 from util.interactivedetector import InteractiveDetector
 
 __author__ = "Markus Oberweger <oberweger@icg.tugraz.at>"
@@ -61,7 +61,7 @@ if __name__ == '__main__':
 
     if person is None:
         print('Person must be specified: -p <person> or enter now:')
-        person = input().lower()
+        person = input()
         if len(person.strip()) == 0:
             sys.exit(2)
     else:
@@ -87,10 +87,10 @@ if __name__ == '__main__':
 
     rng = numpy.random.RandomState(23455)
 
-    if person == 'hpseq_loop_mv':
-        di = Blender2Importer('../data/Blender/', useCache=False)
-        Seq2 = di.loadSequence(person, camera=0, shuffle=False)
-        hpe = Blender2HandposeEvaluation([j.gt3Dorig for j in Seq2.data], [j.gt3Dorig for j in Seq2.data])
+    if person == 'test_seq2':
+        di = IntelImporter('/home/boonyew/Documents/semi-auto-anno-master/semi-auto-anno/data/intel/', useCache=False)
+        Seq2 = di.loadSequence(person, shuffle=False)
+        hpe = IntelHandposeEvaluation([j.gt3Dorig for j in Seq2.data], [j.gt3Dorig for j in Seq2.data])
         for idx, seq in enumerate(Seq2.data):
             Seq2.data[idx] = seq._replace(com=numpy.zeros((3,)))
     else:

@@ -38,6 +38,9 @@ from util.helpers import gaussian_kernel
 from util.optimize import sparseLM
 from util.cluster import submodularClusterGreedy
 
+from etc.pyflow import pyflow
+
+
 __author__ = "Markus Oberweger <oberweger@icg.tugraz.at>"
 __copyright__ = "Copyright 2016, ICG, Graz University of Technology, Austria"
 __credits__ = ["Markus Oberweger"]
@@ -113,33 +116,33 @@ class SemiAutoAnno:
             self.Ri = numpy.load("{}/Ri_{}.npy".format(self.eval_prefix, self.eval_params['ref_descriptor']))
             if self.Ri.shape[0] != self.numSamples:
                 # recalculate, cache outdated
-                print "Recalculate cache. Cache has {} and samples are {}.".format(self.Ri.shape[0], self.numSamples)
+                print("Recalculate cache. Cache has {} and samples are {}.".format(self.Ri.shape[0], self.numSamples))
                 if 'ref_descriptor' in self.eval_params:
                     if self.eval_params['ref_descriptor'] == 'hog_msk':
                         self.Ri, _ = self.getImageDescriptors_HOG(self.Di, useMask=False, doNormalize=False)
                     elif self.eval_params['ref_descriptor'] == 'hog':
                         self.Ri, _ = self.getImageDescriptors_HOG(self.Di, useMask=False, doNormalize=True)
                     else:
-                        print "WARNING: Cache unknown for parameter: "+self.eval_params['ref_descriptor']
+                        print("WARNING: Cache unknown for parameter: "+self.eval_params['ref_descriptor'])
                         self.Ri = numpy.asarray((1, 1))
                 else:
                     raise NotImplementedError("Missing parameter 'ref_descriptor'")
                 numpy.save("{}/Ri_{}.npy".format(self.eval_prefix, self.eval_params['ref_descriptor']), self.Ri)
         else:
-            print "Running cache..."
+            print("Running cache...")
             if 'ref_descriptor' in self.eval_params:
                 if self.eval_params['ref_descriptor'] == 'hog_msk':
                     self.Ri, _ = self.getImageDescriptors_HOG(self.Di, useMask=False, doNormalize=False)
                 elif self.eval_params['ref_descriptor'] == 'hog':
                     self.Ri, _ = self.getImageDescriptors_HOG(self.Di, useMask=False, doNormalize=True)
                 else:
-                    print "WARNING: Cache unknown for parameter: "+self.eval_params['ref_descriptor']
+                    print("WARNING: Cache unknown for parameter: "+self.eval_params['ref_descriptor'])
                     self.Ri = numpy.asarray((1, 1))
             else:
                 raise NotImplementedError("Missing parameter 'ref_descriptor'")
             numpy.save("{}/Ri_{}.npy".format(self.eval_prefix, self.eval_params['ref_descriptor']), self.Ri)
 
-        print "NNZ Ri: ", numpy.count_nonzero(self.Ri)/float(numpy.prod(self.Ri.shape))
+        print("NNZ Ri: ", numpy.count_nonzero(self.Ri)/float(numpy.prod(self.Ri.shape)))
 
         if 'corr_patch_size' in self.eval_params:
             self.corrPatchSize = self.eval_params['corr_patch_size']
@@ -169,7 +172,7 @@ class SemiAutoAnno:
         self.numLengthConstraints = self.numSamples*len(self.lenghtConstraintIdx)
         self.lenghtConstraintS = numpy.zeros((self.lenghtConstraint.shape[1], self.lenghtConstraint.shape[1]//3),
                                              dtype='float32')
-        for ip in xrange(self.lenghtConstraint.shape[1]//3):
+        for ip in range(self.lenghtConstraint.shape[1]//3):
             self.lenghtConstraintS[3*ip:3*(ip+1), ip] = 1
 
         # bound constraints construction matrix of +/- 1
@@ -178,14 +181,14 @@ class SemiAutoAnno:
         self.numBoundConstraints = self.numSamples*len(self.boundConstraintIdx)
         self.boundConstraintS = numpy.zeros((self.boundConstraint.shape[1], self.boundConstraint.shape[1]//3),
                                             dtype='float32')
-        for ip in xrange(self.boundConstraint.shape[1]//3):
+        for ip in range(self.boundConstraint.shape[1]//3):
             self.boundConstraintS[3*ip:3*(ip+1), ip] = 1
 
         # list of indices of breaks in the training sequence, important for temporal constraint handling
         self.temporalBreaks = temporalBreaks
         self.tempConstraintIdx0 = []  # indices of Li
         self.tempConstraintIdx1 = []  # indices of Li+1
-        for i in xrange(self.numSamples-1):
+        for i in range(self.numSamples-1):
             if i not in self.temporalBreaks:
                 self.tempConstraintIdx0.append(i)
                 self.tempConstraintIdx1.append(i+1)
@@ -200,7 +203,7 @@ class SemiAutoAnno:
         self.hcBreaks = hcBreaks
         self.hcConstraintIdx0 = []  # indices of Li
         self.hcConstraintIdx1 = []  # indices of Lj
-        for i in xrange(self.numSamples-1):
+        for i in range(self.numSamples-1):
             if i not in self.hcBreaks:
                 self.hcConstraintIdx0.append(i)
                 self.hcConstraintIdx1.append(i+1)
@@ -211,7 +214,7 @@ class SemiAutoAnno:
         self.zz_pairs_v1M = zz_pairs_v1M
         self.zz_pairs_v2M = zz_pairs_v2M
         self.zz_pairS = numpy.zeros((self.zz_pairs_v1M.shape[1], self.zz_pairs_v1M.shape[1]//3), dtype='float32')
-        for ip in xrange(self.zz_pairs_v1M.shape[1]//3):
+        for ip in range(self.zz_pairs_v1M.shape[1]//3):
             self.zz_pairS[3*ip:3*(ip+1), ip] = 1
 
         if len(subset_idxs) == 0:
@@ -219,8 +222,8 @@ class SemiAutoAnno:
             self.numSubset = len(subset_idxs)
             self.subset_idxs = numpy.asarray(sorted(subset_idxs))
             self.evalReferenceFrameSelection()
-            print "Got {} reference frames".format(len(self.subset_idxs))
-            print self.subset_idxs.tolist()
+            print("Got {} reference frames".format(len(self.subset_idxs)))
+            print(self.subset_idxs.tolist())
             thefile = open("{}/ref_idxs_{}_{}_{}.txt".format(self.eval_prefix,
                                                              self.eval_params['ref_descriptor'],
                                                              self.eval_params['ref_cluster'],
@@ -282,13 +285,13 @@ class SemiAutoAnno:
                                                                        self.eval_params['ref_optimization']))
                 if self.li3D_aug.shape[0] != len(self.subset_idxs):
                     # recalculate, cache outdated
-                    print "Recalculate cache. Cache has {} and samples are {}.".format(self.li3D_aug.shape[0],
-                                                                                       len(self.subset_idxs))
+                    print("Recalculate cache. Cache has {} and samples are {}.".format(self.li3D_aug.shape[0],
+                                                                                       len(self.subset_idxs)))
                     self.li3D_aug = self.augmentLi3D(self.li, self.subset_idxs)
                     numpy.save("{}/li3D_aug_{}.npy".format(self.eval_prefix, self.eval_params['ref_optimization']),
                                self.li3D_aug)
             else:
-                print "Running cache..."
+                print("Running cache...")
                 self.li3D_aug = self.augmentLi3D(self.li, self.subset_idxs)
                 numpy.save("{}/li3D_aug_{}.npy".format(self.eval_prefix, self.eval_params['ref_optimization']),
                            self.li3D_aug)
@@ -317,7 +320,7 @@ class SemiAutoAnno:
         assert len(self.hcBreaks) == self.jointBounds.shape[0], \
             "{} == {}".format(len(self.hcBreaks), self.jointBounds.shape[0])
 
-        print "#images: {}, #ref: {}, #joints: {}".format(self.numSamples, self.numSubset, self.numJoints)
+        print("#images: {}, #ref: {}, #joints: {}".format(self.numSamples, self.numSubset, self.numJoints))
 
         # keep copies of original versions
         self.orig_subset_idxs = numpy.asarray(subset_idxs).copy()
@@ -349,13 +352,13 @@ class SemiAutoAnno:
                                           numpy.zeros((len(idxs), self.numJoints, 1))], axis=2)
         # project from normalized 2D global 2D
         invM = numpy.zeros_like(self.Di_trans2D[idxs])
-        for i in xrange(len(idxs)):
+        for i in range(len(idxs)):
             invM[i] = numpy.linalg.inv(self.Di_trans2D[idxs[i]])
         li_img2D_hom = numpy.concatenate([li_denorm.reshape((len(idxs), self.numJoints, 2)),
                                           numpy.ones((len(idxs), self.numJoints, 1))], axis=2)
         li_glob2D = numpy.einsum('ijk,ikl->ijl', li_img2D_hom, invM)
         li_glob2D = li_glob2D[:, :, 0:2] / li_glob2D[:, :, 2][:, :, None]
-        for i in xrange(len(idxs)):
+        for i in range(len(idxs)):
             # use provided initialization
             if dptinit is not None:
                 aug_li_img2D[i, :, 2] = dptinit[i, :]
@@ -464,7 +467,7 @@ class SemiAutoAnno:
         invproj[3, 2] = 1.
 
         invM = numpy.zeros_like(self.Di_trans2D[idxs])
-        for i in xrange(len(idxs)):
+        for i in range(len(idxs)):
             invM[i] = numpy.linalg.inv(self.Di_trans2D[idxs[i]])
 
         # project from 2D -> 3D
@@ -522,7 +525,7 @@ class SemiAutoAnno:
                                                                            self.eval_params['init_method'])):
                 Li = numpy.load("{}/Li_init_{}.npy".format(self.eval_prefix, self.eval_params['init_method']))
                 if os.path.isfile("{}/Li_init_{}_corrected.npy".format(self.eval_prefix, self.eval_params['init_method'])):
-                    corrected = numpy.load("{}/Li_init_{}_corrected.npy".format(self.eval_prefix, self.eval_params['init_method'])).tolist()
+                    corrected = numpy.load("{}/Li_init_{}_corrected.npy".format(self.eval_prefix, self.eval_params['init_method']),allow_pickle=True).tolist()
                 else:
                     corrected = []
             else:
@@ -648,7 +651,7 @@ class SemiAutoAnno:
 
         eq_constr = T.sum(T.sqr(eq))  # equality constraint
 
-        print "compiling functions..."
+        print("compiling functions...")
         givens = []
         fun_cost = theano.function([], cost, givens=givens, mode='FAST_RUN', on_unused_input='warn')
 
@@ -665,7 +668,7 @@ class SemiAutoAnno:
 
         grad_eq_constr = T.grad(eq_constr, var)
         gf_eq_constr = theano.function([], grad_eq_constr, givens=givens, mode='FAST_RUN', on_unused_input='warn')
-        print "done"
+        print("done")
 
         # creates a function that computes the cost
         def train_fn(Li_val, ref_tsLi, ref_tsJL, ref_tsMuLagr):
@@ -694,7 +697,7 @@ class SemiAutoAnno:
 
             # update shared parameter
             # tsMuLagr.set_value(numpy.cast['float32'](tsMuLagr.get_value()*5.), borrow=True)  # update this, mu -> inf
-            print "callback cost: "+str(fun_cost())
+            print("callback cost: "+str(fun_cost()))
 
         # creates a function that computes the equality cost
         def eq_constr_fn(Li_val, ref_tsLi, ref_tsJL, ref_tsMuLagr):
@@ -727,7 +730,7 @@ class SemiAutoAnno:
                 else:
                     li_denorm = self.project3Dto2D(self.li, self.subset_idxs)*(self.Di.shape[3]/2.)+(self.Di.shape[3]/2.)
                 # iterate all images in current sequence
-                for i in xrange(self.numSamples):
+                for i in range(self.numSamples):
                     pbar.update(i)
                     ref_idx, _, _ = self.getReferenceForSample(i, Li, doOffset=False)
                     li_idx = numpy.where(numpy.asarray(self.subset_idxs) == ref_idx)[0][0]
@@ -735,7 +738,7 @@ class SemiAutoAnno:
                     weights_k[i] = 1.
                     weights_kp1[i] = 0.
 
-                    for j in xrange(self.numJoints):
+                    for j in range(self.numJoints):
                         y_k = numpy.floor(li_denorm[li_idx].reshape((self.numJoints, 2))[j, 1]).astype(int).clip(0, self.Di.shape[2]-1)
                         x_k = numpy.floor(li_denorm[li_idx].reshape((self.numJoints, 2))[j, 0]).astype(int).clip(0, self.Di.shape[3]-1)
                         ystart_k = y_k - self.corrPatchSize // 2
@@ -761,14 +764,14 @@ class SemiAutoAnno:
                         msk = scipy.ndimage.binary_erosion(msk, structure=numpy.ones((3, 3)), iterations=1)
                         msk_dt = numpy.bitwise_not(msk)
                         edt = scipy.ndimage.morphology.distance_transform_edt(msk_dt)
-                        edt = cv2.normalize(edt, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX)
+                        edt = cv2.normalize(edt, dst=edt.copy(),alpha=0, beta=1, norm_type=cv2.NORM_MINMAX)
                         # normalized correlation maps
                         di_pad = numpy.pad(self.Di[i, 0].astype('float32'), ((self.corrPatchSize // 2, self.corrPatchSize // 2-1),
                                                                              (self.corrPatchSize // 2, self.corrPatchSize // 2-1)),
                                            mode='constant', constant_values=(1.,))
                         corrMaps_k[i, j] = cv2.matchTemplate(di_pad, templ_k.astype('float32'), self.corrMethod)
                         corrMaps_k[i, j] *= msk.astype(corrMaps_k.dtype)
-                        corrMaps_k[i, j] = cv2.normalize(corrMaps_k[i, j], alpha=0, beta=1, norm_type=cv2.NORM_MINMAX)
+                        corrMaps_k[i, j] = cv2.normalize(corrMaps_k[i, j], dst=corrMaps_k[i, j].copy(),alpha=0, beta=1, norm_type=cv2.NORM_MINMAX)
                         # correlation is high where similar, we minimize dissimilarity which is 1-corr
                         corrMaps_k[i, j] = 1. - corrMaps_k[i, j] + numpy.square(edt + 1.)*msk_dt.astype(corrMaps_k.dtype)
                         corrMaps_kp1[i, j] = 0.
@@ -829,17 +832,18 @@ class SemiAutoAnno:
         costR = self.lambdaR/self.numJoints/self.numSamples*numpy.sum(numpy.square(val_k*weights_k[:, None] + val_kp1*weights_kp1[:, None]))
         # costR = self.lambdaR/self.numJoints/self.numSamples*numpy.sum(numpy.square(corrMaps_k[i, j, Li_img2D[:, :, 1], Li_img2D[:, :, 0]]*weights_k[:, None] + corrMaps_kp1[i, j, Li_img2D[:, :, 1], Li_img2D[:, :, 0]]*weights_kp1[:, None]))
         di = numpy.dot(numpy.square(numpy.dot(Li, self.lenghtConstraint)), self.lenghtConstraintS)
+        print(di.shape)
         eq = di - numpy.square(numpy.repeat(self.jointLength, numpy.ediff1d(numpy.insert(self.hcBreaks, 0, -1)), axis=0))
         costConstr = tsMuLagr.get_value()/self.numLengthConstraints*numpy.sum(numpy.square(eq))  # equality constraint
 
         # original cost function
         allcost = costM + costP + costR
         allcosts.append([allcost, costM, costP, costR, costConstr])
-        print "ALL COSTS: "+str(allcosts[-1])+" Theano:"+str(fun_cost())
+        print("ALL COSTS: "+str(allcosts[-1])+" Theano:"+str(fun_cost()))
         allerrsLi.append(self.evaluateToGT(Li, numpy.arange(self.numSamples)))
-        print "Errors to GT: "+str(allerrsLi[-1])
+        print("Errors to GT: "+str(allerrsLi[-1]))
         allerrsLiref.append(self.evaluateToGT(Li, self.subset_idxs))
-        print "Errors to ref: "+str(allerrsLiref[-1])
+        print("Errors to ref: "+str(allerrsLiref[-1]))
 
         # solve for Li
         if self.optimize_bonelength:
@@ -857,8 +861,8 @@ class SemiAutoAnno:
 
             # first block diagonal
             if self.isli2D:
-                for ns in xrange(0, self.numSubset):
-                    for k in xrange(0, self.numJoints):
+                for ns in range(0, self.numSubset):
+                    for k in range(0, self.numJoints):
                         row.extend([ns*self.numJoints*2+k*2,
                                     ns*self.numJoints*2+k*2+1,
                                     ns*self.numJoints*2+k*2,
@@ -889,9 +893,9 @@ class SemiAutoAnno:
                                      -kx*fx*(s*px+cx)*norm*s/(norm*s*pz+norm*cz)**2.*self.lambdaP/self.numJoints/self.numSubset,
                                      -ky*fy*(s*py+cy)*norm*s/(norm*s*pz+norm*cz)**2.*self.lambdaP/self.numJoints/self.numSubset])
             else:
-                for ns in xrange(0, self.numSubset):
-                    for k in xrange(0, self.numJoints):
-                        for j in xrange(0, 3):
+                for ns in range(0, self.numSubset):
+                    for k in range(0, self.numJoints):
+                        for j in range(0, 3):
                             col.extend([ns*self.numJoints*3+k*3+j])
                             row.extend([ns*self.numJoints*3+k*3+j])
                         data.extend((numpy.ones((3,))*self.lambdaP/self.numJoints/self.numSubset).tolist())
@@ -929,8 +933,8 @@ class SemiAutoAnno:
             grad_x = val_k_dx*weights_k[:, None] + val_kp1_dx*weights_kp1[:, None]
             grad_y = val_k_dy*weights_k[:, None] + val_kp1_dy*weights_kp1[:, None]
 
-            for ns in xrange(0, self.numSamples):
-                for k in xrange(0, self.numJoints):
+            for ns in range(0, self.numSamples):
+                for k in range(0, self.numJoints):
                     row.extend([ns*self.numJoints+k+offset,
                                 ns*self.numJoints+k+offset,
                                 ns*self.numJoints+k+offset])
@@ -955,9 +959,9 @@ class SemiAutoAnno:
 
             offset += self.numSamples*self.numJoints
             # temporal constraint, off-diagonal
-            for ns in xrange(0, len(self.tempConstraintIdx0)):
-                for k in xrange(0, self.numJoints):
-                    for j in xrange(0, 3):
+            for ns in range(0, len(self.tempConstraintIdx0)):
+                for k in range(0, self.numJoints):
+                    for j in range(0, 3):
                         row.extend([ns*self.numJoints*3+k*3+j+offset, ns*self.numJoints*3+k*3+j+offset])
                         col.extend([self.tempConstraintIdx0[ns]*self.numJoints*3+k*3+j,
                                     self.tempConstraintIdx1[ns]*self.numJoints*3+k*3+j])
@@ -967,8 +971,8 @@ class SemiAutoAnno:
             offset += len(self.tempConstraintIdx0)*3*self.numJoints
             # hard constraint, off-diagonal
             lag = ref_tsMuLagr.get_value()
-            for ns in xrange(0, self.numSamples):
-                for k in xrange(len(self.lenghtConstraintIdx)):
+            for ns in range(0, self.numSamples):
+                for k in range(len(self.lenghtConstraintIdx)):
                     row.extend([ns*len(self.lenghtConstraintIdx)+k+offset,
                                 ns*len(self.lenghtConstraintIdx)+k+offset,
                                 ns*len(self.lenghtConstraintIdx)+k+offset,
@@ -1014,8 +1018,8 @@ class SemiAutoAnno:
 
             # first block diagonal
             if self.isli2D:
-                for ns in xrange(0, self.numSubset):
-                    for k in xrange(0, self.numJoints):
+                for ns in range(0, self.numSubset):
+                    for k in range(0, self.numJoints):
                         row.extend([ns*self.numJoints*2+k*2,
                                     ns*self.numJoints*2+k*2+1,
                                     ns*self.numJoints*2+k*2,
@@ -1031,9 +1035,9 @@ class SemiAutoAnno:
 
                         data.extend([0., 0., 0., 0., 0., 0.])
             else:
-                for ns in xrange(0, self.numSubset):
-                    for k in xrange(0, self.numJoints):
-                        for j in xrange(0, 3):
+                for ns in range(0, self.numSubset):
+                    for k in range(0, self.numJoints):
+                        for j in range(0, 3):
                             col.extend([ns*self.numJoints*3+k*3+j])
                             row.extend([ns*self.numJoints*3+k*3+j])
                         data.extend([0., 0., 0.])
@@ -1071,9 +1075,9 @@ class SemiAutoAnno:
             grad_x = val_k_dx*weights_k[:, None] + val_kp1_dx*weights_kp1[:, None]
             grad_y = val_k_dy*weights_k[:, None] + val_kp1_dy*weights_kp1[:, None]
 
-            for ns in xrange(0, self.numSamples):
+            for ns in range(0, self.numSamples):
                 if ns not in self.subset_idxs:
-                    for k in xrange(0, self.numJoints):
+                    for k in range(0, self.numJoints):
                         row.extend([ns*self.numJoints+k+offset,
                                     ns*self.numJoints+k+offset,
                                     ns*self.numJoints+k+offset])
@@ -1096,7 +1100,7 @@ class SemiAutoAnno:
                                      grad_y[ns, k] * ky*fy*s/(s*pz+cz)*self.lambdaR/self.numJoints/self.numSamples,
                                      (grad_x[ns, k] * -kx*fx*(s*px+cx)*s/(s*pz+cz)**2. + grad_y[ns, k] * -ky*fy*(s*py+cy)*s/(s*pz+cz)**2.)*self.lambdaR/self.numJoints/self.numSamples])
                 else:
-                    for k in xrange(0, self.numJoints):
+                    for k in range(0, self.numJoints):
                         row.extend([ns*self.numJoints+k+offset,
                                     ns*self.numJoints+k+offset,
                                     ns*self.numJoints+k+offset])
@@ -1107,32 +1111,32 @@ class SemiAutoAnno:
 
             offset += self.numSamples*self.numJoints
             # temporal constraint, off-diagonal
-            for ns in xrange(0, len(self.tempConstraintIdx0)):
+            for ns in range(0, len(self.tempConstraintIdx0)):
                 if self.tempConstraintIdx0[ns] not in self.subset_idxs and self.tempConstraintIdx1[ns] not in self.subset_idxs:
-                    for k in xrange(0, self.numJoints):
-                        for j in xrange(0, 3):
+                    for k in range(0, self.numJoints):
+                        for j in range(0, 3):
                             row.extend([ns*self.numJoints*3+k*3+j+offset, ns*self.numJoints*3+k*3+j+offset])
                             col.extend([self.tempConstraintIdx0[ns]*self.numJoints*3+k*3+j,
                                         self.tempConstraintIdx1[ns]*self.numJoints*3+k*3+j])
                             data.extend([1.*self.lambdaM/self.numTempConstraints,
                                          -1.*self.lambdaM/self.numTempConstraints])
                 elif self.tempConstraintIdx0[ns] not in self.subset_idxs:
-                    for k in xrange(0, self.numJoints):
-                        for j in xrange(0, 3):
+                    for k in range(0, self.numJoints):
+                        for j in range(0, 3):
                             row.extend([ns*self.numJoints*3+k*3+j+offset, ns*self.numJoints*3+k*3+j+offset])
                             col.extend([self.tempConstraintIdx0[ns]*self.numJoints*3+k*3+j,
                                         self.tempConstraintIdx1[ns]*self.numJoints*3+k*3+j])
                             data.extend([1.*self.lambdaM/self.numTempConstraints, 0.])
                 elif self.tempConstraintIdx1[ns] not in self.subset_idxs:
-                    for k in xrange(0, self.numJoints):
-                        for j in xrange(0, 3):
+                    for k in range(0, self.numJoints):
+                        for j in range(0, 3):
                             row.extend([ns*self.numJoints*3+k*3+j+offset, ns*self.numJoints*3+k*3+j+offset])
                             col.extend([self.tempConstraintIdx0[ns]*self.numJoints*3+k*3+j,
                                         self.tempConstraintIdx1[ns]*self.numJoints*3+k*3+j])
                             data.extend([0., -1.*self.lambdaM/self.numTempConstraints])
                 else:
-                    for k in xrange(0, self.numJoints):
-                        for j in xrange(0, 3):
+                    for k in range(0, self.numJoints):
+                        for j in range(0, 3):
                             row.extend([ns*self.numJoints*3+k*3+j+offset, ns*self.numJoints*3+k*3+j+offset])
                             col.extend([self.tempConstraintIdx0[ns]*self.numJoints*3+k*3+j,
                                         self.tempConstraintIdx1[ns]*self.numJoints*3+k*3+j])
@@ -1141,9 +1145,9 @@ class SemiAutoAnno:
             offset += len(self.tempConstraintIdx0)*3*self.numJoints
             # hard constraint, off-diagonal
             lag = ref_tsMuLagr.get_value()
-            for ns in xrange(0, self.numSamples):
+            for ns in range(0, self.numSamples):
                 if ns not in self.subset_idxs:
-                    for k in xrange(len(self.lenghtConstraintIdx)):
+                    for k in range(len(self.lenghtConstraintIdx)):
                         row.extend([ns*len(self.lenghtConstraintIdx)+k+offset,
                                     ns*len(self.lenghtConstraintIdx)+k+offset,
                                     ns*len(self.lenghtConstraintIdx)+k+offset,
@@ -1167,7 +1171,7 @@ class SemiAutoAnno:
                             col.append(self.numVar+self.hcIdxForFlatIdx(ns)*len(self.lenghtConstraintIdx)+k)
                             data.append(-2.*x[self.numVar+self.hcIdxForFlatIdx(ns)*len(self.lenghtConstraintIdx)+k])
                 else:
-                    for k in xrange(len(self.lenghtConstraintIdx)):
+                    for k in range(len(self.lenghtConstraintIdx)):
                         row.extend([ns*len(self.lenghtConstraintIdx)+k+offset,
                                     ns*len(self.lenghtConstraintIdx)+k+offset,
                                     ns*len(self.lenghtConstraintIdx)+k+offset,
@@ -1366,7 +1370,7 @@ class SemiAutoAnno:
         else:
             raise NotImplementedError("Missing parameter 'global_optimize_incHC'")
 
-        print "Took {}s for fitTracking".format(time.time()-start)
+        print("Took {}s for fitTracking".format(time.time()-start))
 
         if self.optimize_bonelength:
             Li = best_rval[0][0:self.numVar].reshape(Li.shape)
@@ -1429,11 +1433,11 @@ class SemiAutoAnno:
         # original cost function
         allcost = costM + costP + costR
         allcosts.append([allcost, costM, costP, costR, costConstr])
-        print "ALL COSTS: "+str(allcosts[-1])+" Theano:"+str(fun_cost())
+        print("ALL COSTS: "+str(allcosts[-1])+" Theano:"+str(fun_cost()))
         allerrsLi.append(self.evaluateToGT(Li, numpy.arange(self.numSamples)))
-        print "Errors to GT: "+str(allerrsLi[-1])
+        print("Errors to GT: "+str(allerrsLi[-1]))
         allerrsLiref.append(self.evaluateToGT(Li, self.subset_idxs))
-        print "Errors to ref: "+str(allerrsLiref[-1])
+        print("Errors to ref: "+str(allerrsLiref[-1]))
 
         leg = ['allcost', 'costM', 'costP', 'costR', 'costConstr']
         self.plotErrors(allerrsLi, allerrsLiref, [[0, 0, 0, 0, 0]], [[0, 0, 0, 0, 0]], allcosts, leg)
@@ -1564,7 +1568,7 @@ class SemiAutoAnno:
             else:
                 ieq = T.concatenate([ieq, zzerr.flatten()], axis=0)
 
-        print "compiling functions..."
+        print("compiling functions...")
         givens = []
         fun_cost = theano.function([], costP, givens=givens, mode='FAST_RUN', on_unused_input='warn')
 
@@ -1581,7 +1585,7 @@ class SemiAutoAnno:
 
         grad_ieq_constr = T.grad(ieq[idx], tsLi)
         gf_ieq_constr = theano.function([idx], grad_ieq_constr, givens=givens, mode='FAST_RUN', on_unused_input='warn')
-        print "done"
+        print("done")
 
         # creates a function that computes the cost
         def train_fn(x, ref_tsLi):
@@ -1626,7 +1630,7 @@ class SemiAutoAnno:
         pbar.start()
 
         start = time.time()
-        for i in xrange(len(idxs)):
+        for i in range(len(idxs)):
 
             li_idx = numpy.where(self.subset_idxs == idxs[i])[0][0]
 
@@ -1653,9 +1657,9 @@ class SemiAutoAnno:
             # check bounds with GT
             if self.gt3D is not None:
                 bnds = self.getReferenceBounds(self.gt3D[idxs[i]], idxs[i])
-                for j in xrange(self.gt3D[idxs[i]].flatten().shape[0]):
+                for j in range(self.gt3D[idxs[i]].flatten().shape[0]):
                     if not (bnds[j][0] < self.gt3D[idxs[i]].flatten()[j] < bnds[j][1]):
-                        print "Bound violated: Sample ", i, " joint ", j, bnds[j][0], "<", self.gt3D[idxs[i]].flatten()[j], "<", bnds[j][1]
+                        print("Bound violated: Sample ", i, " joint ", j, bnds[j][0], "<", self.gt3D[idxs[i]].flatten()[j], "<", bnds[j][1])
 
             bnds = self.getReferenceBounds(li3D[i], idxs[i])
 
@@ -1703,7 +1707,7 @@ class SemiAutoAnno:
                             args=(tsLi,)
                         )
                 except:
-                    print "Error while optimizing sample {}".format(idxs[i])
+                    print("Error while optimizing sample {}".format(idxs[i]))
                     raise
             else:
                 raise NotImplementedError("Missing parameter 'ref_optimize_incHC'")
@@ -1736,7 +1740,7 @@ class SemiAutoAnno:
             #                  niceColors=True, visibility=self.li_visiblemask[i])
 
         pbar.finish()
-        print "Took {}s for reference frame optimization".format(time.time()-start)
+        print("Took {}s for reference frame optimization".format(time.time()-start))
 
         # Clean up, to free possible gpu memory for several function calls
         del tsli, tsMuLagr, tsCam, tsScale, tsOff3D, tsTrans2D, tsJL, tsJB, tsPB, tsPBS, tsLi
@@ -1840,7 +1844,7 @@ class SemiAutoAnno:
         else:
             raise NotImplementedError("Missing parameter 'ref_cluster'")
 
-        print "Took {}s for clustering".format(time.time()-start)
+        print("Took {}s for clustering".format(time.time()-start))
 
         del dist
         gc.collect()
@@ -1859,14 +1863,14 @@ class SemiAutoAnno:
 
         ref_idx = [0]*self.numSamples
         if (self.numSamples < self.detailEvalThresh) or (self.gt3D is not None):
-            for i in xrange(self.numSamples):
+            for i in range(self.numSamples):
                 ref_idx[i], _, _ = self.getReferenceForSample(i, init, False)
                 if self.gt3D is not None:
                     closest_joints[i] = self.gt3D[ref_idx[i]].reshape((self.numJoints, 3))*self.Di_scale[ref_idx[i]]
 
         if (self.debugPrint is True) and (self.numSamples < self.detailEvalThresh):
             sel = numpy.zeros((self.numSamples, self.numSubset), dtype='uint8')
-            for i in xrange(self.numSamples):
+            for i in range(self.numSamples):
                 sel[i, numpy.where(self.subset_idxs == ref_idx[i])[0][0]] = 255
 
             cv2.imwrite("{}/ref_descriptor_{}_{}_{}.png".format(self.eval_prefix,
@@ -1880,13 +1884,13 @@ class SemiAutoAnno:
                                                                self.eval_params['ref_descriptor'],
                                                                self.eval_params['ref_cluster'],
                                                                self.eval_params['ref_threshold']), closest_joints)
-            gt3D = numpy.asarray([self.gt3D[idx] * self.Di_scale[idx] for idx in xrange(self.gt3D.shape[0])]).reshape(
+            gt3D = numpy.asarray([self.gt3D[idx] * self.Di_scale[idx] for idx in range(self.gt3D.shape[0])]).reshape(
                 (self.numSamples, self.numJoints, 3))
             import matplotlib.pyplot as plt
             fig = plt.figure()
             ax = fig.add_subplot(111)
             ax.plot([(numpy.nanmax(numpy.sqrt(numpy.square(gt3D - closest_joints).sum(axis=2)), axis=1) <= j).sum() / float(
-                self.numSamples) * 100. for j in xrange(0, 80)])
+                self.numSamples) * 100. for j in range(0, 80)])
             plt.xlabel('Distance threshold / mm')
             plt.ylabel('Fraction of frames within distance / %')
             plt.ylim([0.0, 100.0])
@@ -2028,7 +2032,7 @@ class SemiAutoAnno:
                 if self.eval_params['init_offset'] == 'siftflow':
                     # use offset in 2D wrt to the reference frame
                     if numpy.allclose(init3D[self.subset_idxs[best_ref_idx]], 0.):
-                        print "WARNING: init is not set! No SIFTflow aligment possible."
+                        print("WARNING: init is not set! No SIFTflow aligment possible.")
                         warpImg = self.Di[i, 0]
                     else:
                         li2D = self.project3Dto2D(init3D[self.subset_idxs[best_ref_idx]],
@@ -2069,17 +2073,17 @@ class SemiAutoAnno:
                     best_ref_idx = best_ref_idx
                     best_off2D = best_off2D_glob
                     best_off3D = best_off3D_glob
-                    print "Using flow"
+                    print("Using flow")
                 elif am == 1:
                     best_ref_idx = numpy.where(self.subset_idxs == idx_k)[0][0]
                     best_off2D = idxToOff(ssd_k.argmin())
                     best_off3D = numpy.zeros((self.numJoints, 3))
-                    print "Using temp-1"
+                    print("Using temp-1")
                 elif am == 2:
                     best_ref_idx = numpy.where(self.subset_idxs == idx_kp1)[0][0]
                     best_off2D = idxToOff(ssd_kp1.argmin())
                     best_off3D = numpy.zeros((self.numJoints, 3))
-                    print "Using temp+1"
+                    print("Using temp+1")
                 else:
                     raise NotImplementedError("Internal error")
             else:
@@ -2096,8 +2100,8 @@ class SemiAutoAnno:
             plt.show(block=False)
             fig.savefig(self.eval_prefix+'/pairs_{}.png'.format(i), bbox_inches='tight')
             plt.close(fig)
-        print "BEST for i={}: ref={}, off2D={}, off3D={}".format(i, self.subset_idxs[best_ref_idx],
-                                                             best_off2D.tolist(), best_off3D.tolist())
+        print("BEST for i={}: ref={}, off2D={}, off3D={}".format(i, self.subset_idxs[best_ref_idx],
+                                                             best_off2D.tolist(), best_off3D.tolist()))
 
         return self.subset_idxs[best_ref_idx], best_off2D, best_off3D
 
@@ -2156,7 +2160,7 @@ class SemiAutoAnno:
             if self.eval_params['init_offset'] == 'siftflow':
                 # use offset in 2D wrt to the reference frame
                 if numpy.allclose(init3D[self.subset_idxs[best_ref_idx]], 0.):
-                    print "WARNING: init is not set! No SIFTflow aligment possible."
+                    print("WARNING: init is not set! No SIFTflow aligment possible.")
                 else:
                     li2D = self.project3Dto2D(init3D[self.subset_idxs[best_ref_idx]],
                                               self.subset_idxs[best_ref_idx]).reshape(self.numJoints, 2)
@@ -2176,9 +2180,9 @@ class SemiAutoAnno:
             fig.savefig(self.eval_prefix+'/pairs_{}.png'.format(unannotated[best_sample_idx]), bbox_inches='tight')
             plt.close(fig)
 
-        print "BEST for i={}: ref={}, off2D={}, off3D={}".format(unannotated[best_sample_idx],
+        print("BEST for i={}: ref={}, off2D={}, off3D={}".format(unannotated[best_sample_idx],
                                                                  self.subset_idxs[best_ref_idx],
-                                                                 off2D.tolist(), off3D.tolist())
+                                                                 off2D.tolist(), off3D.tolist()))
 
         return unannotated[best_sample_idx], self.subset_idxs[best_ref_idx], off2D, off3D
 
@@ -2196,21 +2200,45 @@ class SemiAutoAnno:
             raise NotImplementedError("!")
         else:
             # quick and dirty call of matlab script
-            scipy.io.savemat("./etc/sift_flow/input_{}.mat".format(os.getpid()),
-                             {'in1': self.Di[ref_idx, 0], 'in2': self.Di[idx, 0]})
-            cmd = "-nojvm -nodisplay -nosplash -r \"cd ./etc/sift_flow/; procid={}; try, run('process.m'); end; quit \" ".format(os.getpid())
-
-            from subprocess import call
-            call(["matlab", cmd])
-            data = scipy.io.loadmat("./etc/sift_flow/output_{}.mat".format(os.getpid()))
-            flow = data['flow'].astype('float')
-            vx = flow[:, :, 0]
-            vy = flow[:, :, 1]
-            warpI2 = data['warpI2']
+#            scipy.io.savemat("./etc/sift_flow/input_{}.mat".format(os.getpid()),
+#                             {'in1': self.Di[ref_idx, 0], 'in2': self.Di[idx, 0]})
+#            cmd = "-nojvm -nodisplay -nosplash -r \"cd ./etc/sift_flow/; procid={}; try, run('process.m'); end; quit \" ".format(os.getpid())
+#
+#            from subprocess import call
+#            call(["matlab", cmd])
+#            data = scipy.io.loadmat("./etc/sift_flow/output_{}.mat".format(os.getpid()))
+#            flow = data['flow'].astype('float')
+#            vx = flow[:, :, 0]
+#            vy = flow[:, :, 1]
+#            warpI2 = data['warpI2']
+            im1 = self.Di[ref_idx, 0]
+            im2 = self.Di[idx, 0]
+            im1 = im1.astype(float) / 255.
+            im2 = im2.astype(float) / 255.
+            im1 = numpy.expand_dims(im1,2)
+            im2 = numpy.expand_dims(im2,2)
+            
+            # Flow Options:
+            alpha = 0.012
+            ratio = 0.75
+            minWidth = 20
+            nOuterFPIterations = 7
+            nInnerFPIterations = 1
+            nSORIterations = 30
+            colType = 0  # 0 or default:RGB, 1:GRAY (but pass gray image with shape (h,w,1))
+            
+            s = time.time()
+            vx, vy, warpI2 = pyflow.coarse2fine_flow(
+                im1, im2, alpha, ratio, minWidth, nOuterFPIterations, nInnerFPIterations,
+                nSORIterations, colType)
+            e = time.time()
+            print('Time Taken: %.2f seconds for image of size (%d, %d, %d)' % (
+                e - s, im1.shape[0], im1.shape[1], im1.shape[2]))
+#            flow = np.concatenate((u[..., None], v[..., None]), axis=2)
 
         # find closest offset vector from siftflow an shift 2D annoataion by this amount
         off = numpy.zeros((self.numJoints, 2))
-        for j in xrange(self.numJoints):
+        for j in range(self.numJoints):
             x = numpy.rint(li2D[j, 0]*(self.Di.shape[3]/2.) + (self.Di.shape[3]/2.)).astype(int)
             y = numpy.rint(li2D[j, 1]*(self.Di.shape[3]/2.) + (self.Di.shape[3]/2.)).astype(int)
             # only valid pixels, discard offsets out of image
@@ -2218,7 +2246,7 @@ class SemiAutoAnno:
                 off[j, 0] = -vx[y, x]
                 off[j, 1] = -vy[y, x]
 
-        print "Took {}s for align SIFTFlow".format(time.time()-start)
+#        print("Took {}s for align SIFTFlow".format(time.time()-start))
 
         # import matplotlib.pyplot as plt
         # fig = plt.figure()
@@ -2295,14 +2323,14 @@ class SemiAutoAnno:
         descr = numpy.zeros((images.shape[0], hog.getDescriptorSize()))
         mask = numpy.ones_like(descr)
 
-        for i in xrange(images.shape[0]):
+        for i in range(images.shape[0]):
             img = images[i, 0].copy()
             if self.normZeroOne:
                 img *= (2.*self.Di_scale[i])
             else:
                 img *= self.Di_scale[i]
                 img += self.Di_scale[i]
-            img = cv2.normalize(img, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
+            img = cv2.normalize(img, dst=img.copy(),alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
             descr[i] = hog.compute(img.astype('uint8'))[:, 0]
 
             if useMask:
@@ -2314,11 +2342,11 @@ class SemiAutoAnno:
                 # normalize to unit length
                 denom = numpy.sqrt(numpy.square(descr[i]).sum())
                 if numpy.allclose(denom, 0.):
-                    print "WARNING: Image {} has empty descriptor!".format(i)
+                    print("WARNING: Image {} has empty descriptor!".format(i))
                     denom = 1.
                 descr[i] /= denom
 
-        print "Took {}s for HOG embedding".format(time.time()-start)
+        print("Took {}s for HOG embedding".format(time.time()-start))
 
         return descr, mask
 
@@ -2341,7 +2369,7 @@ class SemiAutoAnno:
         li_glob2D = numpy.einsum('ijk,ikl->ijl', li_img2D_hom, invM)
         li_glob2D = li_glob2D[:, :, 0:2] / li_glob2D[:, :, 2][:, :, None]
         dm = self.importer.loadDepthMap(self.depthFiles[idx])
-        for k in xrange(self.numJoints):
+        for k in range(self.numJoints):
             iy = numpy.rint(li_glob2D[0, k, 1]).astype(int).clip(0, dm.shape[0]-1)
             ix = numpy.rint(li_glob2D[0, k, 0]).astype(int).clip(0, dm.shape[1]-1)
             if False:
@@ -2445,7 +2473,7 @@ class SemiAutoAnno:
             if not numpy.all(numpy.in1d(init_aligned[:, 0, :].ravel(), self.subset_idxs.ravel())):
                 init_aligned = numpy.zeros((self.numSamples, self.numJoints+1, 3), dtype='float32')  # +1 for reference idx
                 init_aligned_cache = False
-                print "WARNING: Cached subset idxs do not match!"
+                print("WARNING: Cached subset idxs do not match!")
         else:
             init_aligned = numpy.zeros((self.numSamples, self.numJoints+1, 3), dtype='float32')  # +1 for reference idx
             init_aligned_cache = False
@@ -2464,14 +2492,14 @@ class SemiAutoAnno:
         corrected = []
         start = time.time()
 
-        for isa in xrange(self.numSamples):
+        for isa in range(self.numSamples):
 
             if init_aligned_cache is False:
                 if 'init_incrementalref' in self.eval_params:
                     if self.eval_params['init_incrementalref'] is True:
                         unannotated = numpy.setdiff1d(numpy.arange(self.numSamples), self.subset_idxs, assume_unique=True)
-                        print "Current subset: {}".format(numpy.sort(self.subset_idxs))
-                        print "Unannotated frames: {}".format(len(unannotated))
+                        print("Current subset: {}".format(numpy.sort(self.subset_idxs)))
+                        print("Unannotated frames: {}".format(len(unannotated)))
                         if len(unannotated) == 0:
                             continue
                         i, ref_idx, off2D, off3D = self.getClosestSampleForReference(init)
@@ -2546,13 +2574,13 @@ class SemiAutoAnno:
                 msk = scipy.ndimage.binary_erosion(msk, structure=numpy.ones((3, 3)), iterations=1)
                 msk_dt = numpy.bitwise_not(msk)
                 edt = scipy.ndimage.morphology.distance_transform_edt(msk_dt)
-                edt = cv2.normalize(edt, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX)
+                edt = cv2.normalize(edt, dst=edt.copy(),alpha=0, beta=1, norm_type=cv2.NORM_MINMAX)
                 # normalized correlation maps
                 di_pad = numpy.pad(self.Di[i, 0].astype('float32'), ((self.corrPatchSize // 2, self.corrPatchSize // 2-1),
                                                                      (self.corrPatchSize // 2, self.corrPatchSize // 2-1)),
                                    mode='constant', constant_values=(1.,))
                 corrMaps_k[0, j] = cv2.matchTemplate(di_pad, templ_k.astype('float32'), self.corrMethod)
-                corrMaps_k[0, j] = cv2.normalize(corrMaps_k[0, j], alpha=0, beta=1, norm_type=cv2.NORM_MINMAX)
+                corrMaps_k[0, j] = cv2.normalize(corrMaps_k[0, j], dst=corrMaps_k[0, j].copy(),alpha=0, beta=1, norm_type=cv2.NORM_MINMAX)
                 corrMaps_k[0, j] *= msk.astype(corrMaps_k.dtype)
                 # correlation is high where similar, we minimize dissimilarity which is 1-corr
                 corrMaps_k[0, j] = 1. - corrMaps_k[0, j] + numpy.square(edt + 1.)*msk_dt.astype(corrMaps_k.dtype)
@@ -2594,7 +2622,7 @@ class SemiAutoAnno:
                 grad_y = 1./(x2-x1)/(y2-y1)*(-fQ11_k*(x2-xx) - fQ21_k*(xx-x1) + fQ12_k*(x2-xx) + fQ22_k*(xx-x1))
 
                 # optimize only one sample
-                for k in xrange(self.numJoints):
+                for k in range(self.numJoints):
                     row.extend([k+offset,
                                 k+offset,
                                 k+offset])
@@ -2621,7 +2649,7 @@ class SemiAutoAnno:
                 offset += 1*self.numJoints
                 # hard constraint, off-diagonal
                 lag = tsMuLagr.get_value()
-                for k in xrange(len(self.lenghtConstraintIdx)):
+                for k in range(len(self.lenghtConstraintIdx)):
                     row.extend([k+offset,
                                 k+offset,
                                 k+offset,
@@ -2681,7 +2709,7 @@ class SemiAutoAnno:
             def train_fn(x):
                 return numpy.square(train_fn_err(x)).sum()
 
-            print "CURRENT: ", i, "INIT: ", ref_idx
+            print("CURRENT: ", i, "INIT: ", ref_idx)
             assert not numpy.allclose(x0, 0.)
             if 'init_optimize_incHC' in self.eval_params:
                 if self.eval_params['init_optimize_incHC'] is True:
@@ -2804,14 +2832,14 @@ class SemiAutoAnno:
 
         pbar.finish()
 
-        print "Took {}s for init closest reference".format(time.time()-start)
+        print("Took {}s for init closest reference".format(time.time()-start))
 
         # save intermediary results
         numpy.save("{}/Li_init_{}_ref.npy".format(self.eval_prefix, self.eval_params['init_method']), init_closest)
         numpy.save("{}/Li_init_{}_aligned_{}.npy".format(self.eval_prefix, self.eval_params['init_method'],
                                                          self.eval_params['init_offset']), init_aligned)
 
-        print "Corrected: #{}, {}".format(len([c for frame in corrected for c in frame[1]]), corrected)
+        print("Corrected: #{}, {}".format(len([c for frame in corrected for c in frame[1]]), corrected))
         f = open("{}/Li_init_{}_corrected_{}.txt".format(self.eval_prefix, self.eval_params['init_method'],
                                                          self.eval_params['init_offset']), 'w')
         for i in corrected:
@@ -2878,12 +2906,12 @@ class SemiAutoAnno:
                 else:
                     raise NotImplementedError("ref_emb and sample_emb not set!")
 
-                print "Corrected: ", jcorr
-                print "New accuracy: ", self.evaluateToGT(new_li3D.reshape(1, self.numJoints, 3), [idx])
+                print("Corrected: ", jcorr)
+                print("New accuracy: ", self.evaluateToGT(new_li3D.reshape(1, self.numJoints, 3), [idx]))
 
                 return new_li3D.reshape(li3D.shape), jcorr
             else:
-                print "OK"
+                print("OK")
                 # nothing to change
                 return li3D, jcorr
         else:
@@ -2900,9 +2928,9 @@ class SemiAutoAnno:
             dpt[dpt == (self.Di_off3D[idx, 2] + self.Di_scale[idx])] = 0.
             self.hpe.plotResult(dpt, li2D, li2D, showGT=False, niceColors=True)
 
-            ok = raw_input('Annotation OK? Press y or n!\n').strip()
+            ok = input('Annotation OK? Press y or n!\n').strip()
             while ok != 'y' and ok != 'n':
-                ok = raw_input('Annotation OK? Press y or n!\n').strip()
+                ok = input('Annotation OK? Press y or n!\n').strip()
 
             if ok == 'n':
                 from PyQt4.QtGui import QApplication
@@ -2929,7 +2957,7 @@ class SemiAutoAnno:
                 browser = InteractiveDatasetLabeling(seq, self.hpe, self.importer, self.hc, None, None, None, None, [], 0)
                 browser.show()
                 self.qt_interactive_app.exec_()
-                print browser.curData, browser.curVis, browser.curPb, browser.curPbP, browser.curCorrected
+                print(browser.curData, browser.curVis, browser.curPb, browser.curPbP, browser.curCorrected)
                 jcorr = copy.deepcopy(browser.curCorrected)
                 gt2D = browser.curData.copy()
                 vis = copy.deepcopy(browser.curVis)
@@ -2969,7 +2997,7 @@ class SemiAutoAnno:
 
                 return new_li3D.reshape(li3D.shape), jcorr
             else:
-                print "OK"
+                print("OK")
                 # nothing to change
                 return li3D, jcorr
 
@@ -2977,7 +3005,7 @@ class SemiAutoAnno:
 
         if self.gt3D is None:
             if vis is None:
-                print "WARNING: Cannot automatically determine without ground truth!"
+                print("WARNING: Cannot automatically determine without ground truth!")
                 li_visiblemask = numpy.zeros((self.numJoints,))
             else:
                 li_visiblemask = numpy.ones((self.numJoints,))
@@ -3006,7 +3034,7 @@ class SemiAutoAnno:
 
         if self.gt3D is None:
             if pb is None or pbp is None:
-                print "WARNING: Cannot automatically determine without ground truth!"
+                print("WARNING: Cannot automatically determine without ground truth!")
                 lip = []
                 pip = []
             else:
